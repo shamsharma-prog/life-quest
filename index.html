@@ -8,6 +8,12 @@
 <meta name="apple-mobile-web-app-title" content="Life OS"/>
 <meta name="theme-color" content="#7F77DD"/>
 <title>Life OS</title>
+
+<!-- ─── FIREBASE ──────────────────────────────────────────────────── -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -23,6 +29,18 @@
 }
 html,body{height:100%;overflow:hidden;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+
+/* ── login / loading screens ── */
+#loginScreen,#loadingScreen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);z-index:1000;padding:32px;}
+#appRoot{display:none;flex:1;flex-direction:column;overflow:hidden;height:100%;}
+#appRoot.visible{display:flex;}
+.login-logo{font-size:52px;margin-bottom:14px;}
+.login-title{font-size:26px;font-weight:800;color:var(--text);margin-bottom:6px;}
+.login-sub{font-size:14px;color:var(--muted);text-align:center;line-height:1.6;margin-bottom:40px;}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;padding:15px 24px;border:1.5px solid var(--border);border-radius:14px;background:var(--surface);cursor:pointer;font-size:15px;font-weight:600;color:var(--text);width:100%;max-width:300px;transition:box-shadow 0.15s;}
+.google-btn:hover{box-shadow:0 2px 12px rgba(0,0,0,0.1);}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin 0.7s linear infinite;margin-bottom:14px;}
+@keyframes spin{to{transform:rotate(360deg);}}
 
 /* layout */
 .status-bar{height:var(--safe-top);background:var(--surface);flex-shrink:0;}
@@ -43,7 +61,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* header */
 .hrow{display:flex;align-items:center;justify-content:space-between;}
-.avatar{width:38px;height:38px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;overflow:hidden;cursor:pointer;position:relative;}
+.avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:none;}
 .level-pill{font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;background:var(--purple-bg);color:var(--purple-dark);}
 .xp-bar{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:5px;width:140px;}
 .xp-fill{height:100%;background:var(--purple);border-radius:3px;transition:width 0.5s ease;}
@@ -159,9 +178,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* rules list */
 .rule-row{display:flex;align-items:center;gap:9px;font-size:13px;padding:5px 0;}
 .rule-row+.rule-row{border-top:0.5px solid var(--border);}
+
+/* sync indicator */
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);display:inline-block;margin-left:4px;transition:background 0.3s;}
+.sync-dot.saving{background:var(--amber);}
 </style>
 </head>
 <body>
+
+<!-- ─── LOGIN SCREEN ──────────────────────────────────────────────── -->
+<div id="loginScreen">
+  <div class="login-logo">⚔️</div>
+  <div class="login-title">Life Quest</div>
+  <div class="login-sub">Your daily discipline OS.<br>Sign in to sync across all your devices.</div>
+  <button class="google-btn" onclick="signInWithGoogle()">
+    <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+    Continue with Google
+  </button>
+</div>
+
+<!-- ─── LOADING SCREEN ────────────────────────────────────────────── -->
+<div id="loadingScreen" style="display:none;">
+  <div class="spinner"></div>
+  <div style="font-size:13px;color:var(--muted);">Loading your data…</div>
+</div>
+
+<!-- ─── APP ──────────────────────────────────────────────────────── -->
+<div id="appRoot">
 
 <div class="status-bar"></div>
 
@@ -169,7 +212,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="app-header">
   <div class="hrow">
     <div style="display:flex;align-items:center;gap:10px;">
-      <div class="avatar">⚔️</div>
+      <div class="avatar" id="avatarBtn" onclick="openUserMenu()" title="Tap to sign out">
+        <span id="avatarEmoji">⚔️</span>
+        <img id="avatarImg" alt=""/>
+      </div>
       <div>
         <div style="font-size:15px;font-weight:700;" id="pTitle">The Grinder</div>
         <div style="display:flex;align-items:center;gap:6px;margin-top:1px;">
@@ -180,7 +226,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
     <div style="text-align:right;">
-      <div style="font-size:11px;color:var(--muted);" id="dateLabel"></div>
+      <div style="font-size:11px;color:var(--muted);display:flex;align-items:center;justify-content:flex-end;gap:3px;">
+        <span id="dateLabel"></span>
+        <span class="sync-dot" id="syncDot" title="Synced"></span>
+      </div>
       <div style="font-size:12px;font-weight:600;margin-top:2px;" id="focusLabel">Focus: —</div>
     </div>
   </div>
@@ -309,6 +358,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="nav-item" onclick="switchTab('boss')" id="nav-boss"><div class="nav-item-icon">👹</div><div class="nav-item-label">Boss</div></div>
 </div>
 
+</div><!-- end #appRoot -->
+
 <!-- DISTRACTION MODAL -->
 <div class="modal-wrap" id="distModal">
   <div class="modal">
@@ -335,9 +386,134 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- USER MENU MODAL -->
+<div class="modal-wrap" id="userModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div style="width:44px;height:44px;border-radius:50%;background:var(--purple);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;">
+        <span id="menuAvatarEmoji">⚔️</span>
+        <img id="menuAvatarImg" style="display:none;width:100%;height:100%;object-fit:cover;" alt=""/>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:700;" id="menuUserName">Player</div>
+        <div style="font-size:12px;color:var(--muted);" id="menuUserEmail"></div>
+      </div>
+    </div>
+    <button onclick="doSignOut()" style="width:100%;padding:13px;border-radius:12px;border:1.5px solid var(--coral);background:var(--coral-bg);color:var(--coral-dark);cursor:pointer;font-size:14px;font-weight:700;">Sign out</button>
+    <button onclick="closeUserMenu()" style="width:100%;padding:13px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:14px;margin-top:8px;">Cancel</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
+// ─────────────────────────────────────────────────────────────────────
+//  FIREBASE CONFIG — replace with your project's config
+//  Get it from: Firebase Console → Project Settings → Your Apps → SDK setup
+// ─────────────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "REPLACE_WITH_YOUR_API_KEY",
+  authDomain:        "REPLACE_WITH_YOUR_PROJECT_ID.firebaseapp.com",
+  projectId:         "REPLACE_WITH_YOUR_PROJECT_ID",
+  storageBucket:     "REPLACE_WITH_YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "REPLACE_WITH_YOUR_SENDER_ID",
+  appId:             "REPLACE_WITH_YOUR_APP_ID"
+};
+// ─────────────────────────────────────────────────────────────────────
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+let currentUser = null;
+let saveTimer   = null;
+
+// ── auth state ───────────────────────────────────────────────────────
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('loginScreen').style.display  = 'none';
+    document.getElementById('loadingScreen').style.display = 'flex';
+    document.getElementById('appRoot').classList.remove('visible');
+
+    // load from Firestore
+    try {
+      const doc = await db.collection('users').doc(user.uid).get();
+      S = doc.exists ? Object.assign(def(), doc.data()) : def();
+    } catch(e) {
+      console.error('Firestore load error:', e);
+      S = def();
+      toast('Offline — using local data', '#EF9F27');
+    }
+
+    // update avatar in header and menu
+    const img     = document.getElementById('avatarImg');
+    const emoji   = document.getElementById('avatarEmoji');
+    const mImg    = document.getElementById('menuAvatarImg');
+    const mEmoji  = document.getElementById('menuAvatarEmoji');
+    const mName   = document.getElementById('menuUserName');
+    const mEmail  = document.getElementById('menuUserEmail');
+
+    mName.textContent  = user.displayName || 'Player';
+    mEmail.textContent = user.email || '';
+
+    if (user.photoURL) {
+      img.src = user.photoURL;   img.style.display = 'block';   emoji.style.display = 'none';
+      mImg.src = user.photoURL;  mImg.style.display = 'block';  mEmoji.style.display = 'none';
+    }
+
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('appRoot').classList.add('visible');
+    switchTab(S.activeTab || 'today');
+
+  } else {
+    currentUser = null;
+    document.getElementById('appRoot').classList.remove('visible');
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('loginScreen').style.display  = 'flex';
+  }
+});
+
+// ── auth actions ─────────────────────────────────────────────────────
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(err => {
+    toast('Sign-in failed — try again', '#D85A30');
+    console.error(err);
+  });
+}
+function openUserMenu()  { document.getElementById('userModal').classList.add('open'); }
+function closeUserMenu() { document.getElementById('userModal').classList.remove('open'); }
+function doSignOut() {
+  closeUserMenu();
+  auth.signOut();
+}
+
+// ── save (debounced, 1.5 s) ──────────────────────────────────────────
+function save() {
+  if (!currentUser) return;
+  const dot = document.getElementById('syncDot');
+  dot.classList.add('saving');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    db.collection('users').doc(currentUser.uid).set(S)
+      .then(() => dot.classList.remove('saving'))
+      .catch(err => { console.error('Save error:', err); dot.classList.remove('saving'); });
+  }, 1500);
+}
+
+// force-flush on page unload so nothing is lost
+window.addEventListener('beforeunload', () => {
+  if (currentUser && saveTimer) {
+    clearTimeout(saveTimer);
+    db.collection('users').doc(currentUser.uid).set(S);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────
+//  APP LOGIC (unchanged from original)
+// ─────────────────────────────────────────────────────────────────────
 const DIFF={easy:{xp:10,l:'Easy',bg:'#EAF3DE',c:'#27500A'},medium:{xp:20,l:'Medium',bg:'#EEEDFE',c:'#3C3489'},hard:{xp:35,l:'Hard',bg:'#FAECE7',c:'#712B13'}};
 const LEVELS=[{min:0,n:'Rookie',t:'The Grinder'},{min:100,n:'Initiate',t:'The Committed'},{min:300,n:'Warrior',t:'The Disciplined'},{min:600,n:'Champion',t:'The Relentless'},{min:1000,n:'Legend',t:'The Unstoppable'},{min:1500,n:'Mythic',t:'The Ascendant'}];
 const MS=[{d:3,l:'3-day',i:'🔥',r:'+50 XP'},{d:5,l:'5-day',i:'⚡',r:'Small reward!'},{d:7,l:'7-day',i:'⚔️',r:'+150 XP + 🛡️'},{d:14,l:'14-day',i:'🏹',r:'+300 XP + 🛡️'},{d:21,l:'21-day',i:'💎',r:'BIG reward + ❄️'},{d:30,l:'30-day',i:'👑',r:'+1000 XP'},{d:60,l:'60-day',i:'🌟',r:'Legendary'},{d:100,l:'100-day',i:'🏆',r:'Immortal'}];
@@ -352,8 +528,7 @@ const RULES=['📵 No split attention — zero multitasking','📱 Phone in anot
 const AFFIRMS=['"I am a focused, disciplined engineer building a top 1% career."','"I do what I say. Every day. No excuses."','"I am building the version of me I will be proud of in 5 years."','"Discipline today. Freedom tomorrow."','"I am someone who shows up — especially when it\'s hard."'];
 
 function def(){return{completed:{},custom:{mind:[],career:[],health:[],wealth:[],discipline:[],growth:[]},activeRealm:'career',activeTab:'today',shields:0,freezes:0,frozen:{},streaks:{mind:0,career:0,health:0,wealth:0,discipline:0,growth:0},milestones:[],distractions:[],focusMins:0,focusSession:null,bossTasks:{},mits:['','',''],blockDone:{}};}
-let S=(()=>{try{const s=JSON.parse(localStorage.getItem('lifeosv2')||'null');return s?Object.assign(def(),s):def();}catch(e){return def();}})();
-function save(){try{localStorage.setItem('lifeosv2',JSON.stringify(S));}catch(e){}}
+let S = def();
 
 function allQ(r){return[...DQ[r],...(S.custom[r]||[])];}
 function xpEarned(){let x=0;RID.forEach(r=>allQ(r).forEach(t=>{if(S.completed[t.id])x+=DIFF[t.d||t.diff].xp;}));return x;}
@@ -472,10 +647,8 @@ function render(){
   document.getElementById('sDone').textContent=RID.reduce((s,r)=>s+rDone(r),0);
   document.getElementById('sDist').textContent=distCount();
   document.getElementById('sStreak').textContent=bestStreak();
-  // MITs
   const m=S.mits||['','',''];
   document.getElementById('mit1').value=m[0]||'';document.getElementById('mit2').value=m[1]||'';document.getElementById('mit3').value=m[2]||'';
-  // blocks
   ['morning','afterwork','night'].forEach(b=>{
     const cols={morning:'#7F77DD',afterwork:'#1D9E75',night:'#378ADD'};
     document.getElementById('bl-'+b).innerHTML=BLOCKS[b].map((t,i)=>{
@@ -483,7 +656,6 @@ function render(){
       return`<div class="block-task${done?' done':''}" onclick="toggleBlock('${b}',${i})"><div class="bdot" style="${done?'background:'+cols[b]+';':''}"></div><span>${t}</span></div>`;
     }).join('');
   });
-  // realm tabs
   document.getElementById('realmTabs').innerHTML=RID.map(r=>{
     const rm=REALMS[r],done=rDone(r),tot=rTotal(r),pct=tot>0?Math.round(done/tot*100):0,active=r===S.activeRealm;
     return`<div class="rtab${active?' active':''}" style="${active?'border-color:'+rm.a+';':''}" onclick="switchRealm('${r}')">
@@ -493,7 +665,6 @@ function render(){
       <div class="realm-bar"><div class="realm-bar-fill" style="width:${pct}%;background:${rm.a};"></div></div>
     </div>`;
   }).join('');
-  // realm quests
   const r=S.activeRealm,rm=REALMS[r];
   document.getElementById('rTitle').textContent=rm.i+'  '+rm.n;
   document.getElementById('rProg').textContent=rDone(r)+'/'+rTotal(r)+' done';
@@ -510,7 +681,6 @@ function render(){
       </div>
     </div>`;
   }).join('');
-  // focus
   document.getElementById('fScore').textContent=fs+'%';
   document.getElementById('fScore').style.color=fs>=80?'#1D9E75':fs>=50?'#EF9F27':'#E24B4A';
   document.getElementById('fMins').textContent=S.focusMins||0;
@@ -520,7 +690,6 @@ function render(){
   document.getElementById('distSub').textContent=dists.length+' logged today';
   document.getElementById('distLog').innerHTML=dists.length===0?'<div style="font-size:12px;color:var(--muted);padding:8px 0 4px;">Nothing logged yet.</div>':dists.map((d,i)=>`<div class="dist-entry"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:11px;color:var(--muted);">${d.time}</span><span class="dtag">${d.type.split(' ')[0]}</span><span>${d.reason}</span></div><span style="font-size:10px;color:var(--muted);">#${i+1}</span></div>`).join('');
   document.getElementById('distInsight').textContent=distInsight();
-  // streaks
   document.getElementById('streakGrid').innerHTML=RID.map(r=>{
     const rm=REALMS[r],s=S.streaks[r]||0,fz=S.frozen&&S.frozen[r],nx=MS.find(m=>m.d>s&&!(S.milestones||[]).includes(m.d));
     return`<div class="scard${fz?' frozen':''}"><div style="font-size:13px;">${fz?'❄️':rm.i}</div><div class="snum" style="color:${s>0?rm.a:'var(--subtle)'}">${s}</div><div style="font-size:10px;color:var(--muted);margin-top:1px;">${rm.n}</div><div style="font-size:9px;color:${nx?'var(--purple)':'#1D9E75'};margin-top:2px;">${nx?nx.d-s+'d to '+nx.i:'🎉'}</div></div>`;
@@ -532,7 +701,6 @@ function render(){
   document.getElementById('shPips').innerHTML=Array.from({length:Math.max(sc,3)},(_,i)=>`<div class="pip${i>=sc?' used':''}" style="border-color:#7F77DD;color:#534AB7;">🛡️</div>`).join('');
   document.getElementById('frPips').innerHTML=Array.from({length:Math.max(fc,3)},(_,i)=>`<div class="pip${i>=fc?' used':''}" style="border-color:#378ADD;color:#185FA5;">❄️</div>`).join('');
   document.getElementById('shBtn').disabled=!sc;document.getElementById('frBtn').disabled=!fc;
-  // boss
   const boss=BOSSES[li.lv%BOSSES.length];
   document.getElementById('bossIcon').textContent=boss.i;document.getElementById('bossName').textContent=boss.n;document.getElementById('bossReward').textContent='🏆 '+boss.r+' on defeat';
   const bd=BWT.filter(t=>S.bossTasks&&S.bossTasks[t.id]).length,hp=Math.max(0,Math.round(100-bd/BWT.length*100));
@@ -544,7 +712,7 @@ function render(){
 document.getElementById('newName').addEventListener('keydown',e=>{if(e.key==='Enter')addQuest();});
 ['mit1','mit2','mit3'].forEach(id=>document.getElementById(id).addEventListener('change',saveMIT));
 document.getElementById('distModal').addEventListener('click',function(e){if(e.target===this)closeDistModal();});
-switchTab(S.activeTab||'today');
+document.getElementById('userModal').addEventListener('click',function(e){if(e.target===this)closeUserMenu();});
 </script>
 </body>
 </html>
