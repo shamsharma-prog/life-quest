@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Life OS"/>
+<meta name="theme-color" content="#7F77DD"/>
+<title>Life OS</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#f4f3ef;--surface:#fff;--border:rgba(0,0,0,0.1);--text:#1a1a18;--muted:#888;--subtle:#bbb;
+  --purple:#7F77DD;--purple-bg:#EEEDFE;--purple-dark:#3C3489;
+  --teal:#1D9E75;--teal-bg:#E1F5EE;--teal-dark:#085041;
+  --amber:#EF9F27;--amber-bg:#FAEEDA;--amber-dark:#633806;
+  --blue:#378ADD;--blue-bg:#E6F1FB;--blue-dark:#0C447C;
+  --coral:#D85A30;--coral-bg:#FAECE7;--coral-dark:#712B13;
+  --green:#639922;--green-bg:#EAF3DE;--green-dark:#173404;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+
+/* layout */
+.status-bar{height:var(--safe-top);background:var(--surface);flex-shrink:0;}
+.app-header{background:var(--surface);border-bottom:0.5px solid var(--border);padding:10px 16px 10px;flex-shrink:0;}
+.scroll-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px 80px;}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:0.5px solid var(--border);display:flex;padding-bottom:var(--safe-bottom);z-index:50;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 4px 7px;cursor:pointer;gap:3px;}
+.nav-item-icon{font-size:20px;line-height:1;}
+.nav-item-label{font-size:10px;color:var(--muted);font-weight:500;}
+.nav-item.active .nav-item-label{color:var(--purple);}
+.nav-item.active .nav-item-icon{transform:scale(1.1);}
+
+/* cards */
+.card{background:var(--surface);border:0.5px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px;}
+.sh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;}
+.sh-title{font-size:14px;font-weight:600;color:var(--text);}
+.sh-sub{font-size:11px;color:var(--muted);}
+
+/* header */
+.hrow{display:flex;align-items:center;justify-content:space-between;}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.level-pill{font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;background:var(--purple-bg);color:var(--purple-dark);}
+.xp-bar{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:5px;width:140px;}
+.xp-fill{height:100%;background:var(--purple);border-radius:3px;transition:width 0.5s ease;}
+
+/* affirmation */
+.affirm{background:var(--purple-bg);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:var(--purple-dark);font-style:italic;line-height:1.5;text-align:center;}
+
+/* stats */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}
+.stat{background:var(--bg);border-radius:10px;padding:9px 6px;text-align:center;}
+.stat-val{font-size:17px;font-weight:700;}
+.stat-lbl{font-size:9px;color:var(--muted);margin-top:1px;}
+
+/* MIT */
+.mit-cards{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;}
+.mit-card{background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:10px 13px;}
+.mit-realm{font-size:10px;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px;}
+.mit-input{width:100%;font-size:13px;border:none;outline:none;background:transparent;color:var(--text);}
+.mit-input::placeholder{color:var(--subtle);}
+
+/* day blocks */
+.day-block{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:11px 14px;margin-bottom:8px;}
+.block-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+.block-task{display:flex;align-items:center;gap:9px;padding:5px 0;cursor:pointer;font-size:13px;}
+.block-task.done{opacity:0.4;}
+.block-task.done span{text-decoration:line-through;}
+.bdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--subtle);}
+.block-task.done .bdot{background:var(--purple);}
+
+/* realm tabs — horizontal scroll */
+.realm-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;-webkit-overflow-scrolling:touch;}
+.realm-scroll::-webkit-scrollbar{display:none;}
+.rtab{flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:9px 12px;text-align:center;cursor:pointer;min-width:80px;}
+.rtab.active{border-width:2px;}
+.rtab-icon{font-size:18px;display:block;margin-bottom:3px;}
+.rtab-name{font-size:10px;font-weight:600;color:var(--muted);display:block;}
+.rtab-prog{font-size:10px;margin-top:2px;}
+.realm-bar{height:3px;background:var(--bg);border-radius:2px;margin-top:5px;overflow:hidden;}
+.realm-bar-fill{height:100%;border-radius:2px;}
+
+/* quests */
+.quest{background:var(--surface);border:0.5px solid var(--border);border-radius:13px;padding:12px 14px;display:flex;align-items:center;gap:11px;cursor:pointer;margin-bottom:8px;transition:opacity 0.2s;}
+.quest.done{opacity:0.4;}
+.quest.done .qname{text-decoration:line-through;}
+.chk{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.quest.done .chk{border-color:transparent;}
+.chk svg{display:none;width:13px;height:13px;}
+.quest.done .chk svg{display:block;}
+.qbody{flex:1;min-width:0;}
+.qname{font-size:14px;color:var(--text);}
+.qflavor{font-size:11px;color:var(--muted);margin-top:2px;font-style:italic;}
+.qright{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;}
+.add-row{display:flex;gap:8px;margin-bottom:12px;}
+.add-row input{flex:1;font-size:13px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);outline:none;color:var(--text);}
+.add-row input:focus{border-color:var(--purple);}
+.add-row select{font-size:12px;padding:9px 6px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);outline:none;}
+.add-row button{font-size:13px;padding:9px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);cursor:pointer;font-weight:600;white-space:nowrap;}
+
+/* focus */
+.focus-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.fm{background:var(--bg);border-radius:10px;padding:10px;text-align:center;}
+.fm-val{font-size:20px;font-weight:700;}
+.fm-lbl{font-size:10px;color:var(--muted);margin-top:2px;}
+.big-btn{width:100%;padding:15px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;border:1.5px solid;margin-bottom:10px;text-align:center;}
+.big-btn-focus{border-color:var(--teal);background:var(--teal-bg);color:var(--teal-dark);}
+.big-btn-focus.active{background:var(--teal);color:#fff;}
+.big-btn-dist{border-color:var(--coral);background:var(--coral-bg);color:var(--coral-dark);}
+.dist-entry{background:var(--bg);border-radius:9px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;font-size:12px;margin-bottom:6px;}
+.dtag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--coral-bg);color:var(--coral-dark);}
+
+/* streaks */
+.streak-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.scard{background:var(--bg);border-radius:10px;padding:10px;text-align:center;}
+.snum{font-size:22px;font-weight:700;}
+.m-row{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
+.m-row::-webkit-scrollbar{display:none;}
+.mchip{flex-shrink:0;border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;}
+.mchip.done{background:var(--purple-bg);border-color:#AFA9EC;color:var(--purple-dark);}
+.mchip.next{border:1.5px dashed var(--purple);color:var(--purple);}
+.tokens-col{display:flex;flex-direction:column;gap:10px;}
+.tcard{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:13px;}
+.pips{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0;}
+.pip{width:22px;height:22px;border-radius:50%;border:1.5px solid;display:flex;align-items:center;justify-content:center;font-size:11px;}
+.pip.used{opacity:0.18;}
+.tcard-btn{width:100%;font-size:12px;padding:8px;border:1px solid var(--border);border-radius:9px;background:transparent;color:var(--muted);cursor:pointer;margin-top:6px;font-weight:500;}
+.tcard-btn:disabled{opacity:0.3;cursor:not-allowed;}
+
+/* boss */
+.boss-card{background:var(--surface);border:1.5px solid var(--coral);border-radius:14px;padding:14px 16px;margin-bottom:12px;}
+.boss-hp-track{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin:8px 0 4px;}
+.boss-hp-fill{height:100%;background:var(--coral);border-radius:4px;transition:width 0.6s ease;}
+.boss-task{background:var(--bg);border-radius:10px;padding:11px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;margin-bottom:7px;}
+.boss-task.done{opacity:0.45;}
+.boss-task.done span{text-decoration:line-through;}
+
+/* modal */
+.modal-wrap{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:flex-end;justify-content:center;}
+.modal-wrap.open{display:flex;}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + var(--safe-bottom));width:100%;max-height:85vh;overflow-y:auto;}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:14px;}
+.modal-opt{padding:13px 14px;border:1px solid var(--border);border-radius:12px;cursor:pointer;font-size:13px;margin-bottom:8px;}
+.modal-opt.selected{border-color:var(--coral);background:var(--coral-bg);color:var(--coral-dark);}
+.modal-btns{display:flex;gap:10px;margin-top:14px;}
+.modal-btns button{flex:1;padding:12px;border-radius:11px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:14px;font-weight:600;}
+.modal-btns button.primary{background:var(--coral);border-color:var(--coral);color:#fff;}
+
+/* toast */
+.toast{position:fixed;bottom:calc(72px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:#534AB7;color:#fff;padding:10px 20px;border-radius:22px;font-size:13px;font-weight:600;opacity:0;transition:transform 0.3s,opacity 0.3s;white-space:nowrap;z-index:300;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+/* rules list */
+.rule-row{display:flex;align-items:center;gap:9px;font-size:13px;padding:5px 0;}
+.rule-row+.rule-row{border-top:0.5px solid var(--border);}
+</style>
+</head>
+<body>
+
+<div class="status-bar"></div>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div class="hrow">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="avatar">⚔️</div>
+      <div>
+        <div style="font-size:15px;font-weight:700;" id="pTitle">The Grinder</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:1px;">
+          <span class="level-pill" id="lvlBadge">Lv 1</span>
+          <span style="font-size:11px;color:var(--muted);" id="xpLbl">0/100 XP</span>
+        </div>
+        <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:11px;color:var(--muted);" id="dateLabel"></div>
+      <div style="font-size:12px;font-weight:600;margin-top:2px;" id="focusLabel">Focus: —</div>
+    </div>
+  </div>
+</div>
+
+<!-- SCROLL BODY -->
+<div class="scroll-body" id="scrollBody">
+
+  <!-- TODAY -->
+  <div id="tab-today">
+    <div class="affirm" id="affirmText"></div>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-val" id="sXP">0</div><div class="stat-lbl">XP today</div></div>
+      <div class="stat"><div class="stat-val" id="sDone">0</div><div class="stat-lbl">Done</div></div>
+      <div class="stat"><div class="stat-val" id="sDist" style="color:var(--coral);">0</div><div class="stat-lbl">Distractions</div></div>
+      <div class="stat"><div class="stat-val" id="sStreak">0</div><div class="stat-lbl">Best streak</div></div>
+    </div>
+
+    <div class="sh"><span class="sh-title">3 MITs — today's non-negotiables</span></div>
+    <div class="mit-cards">
+      <div class="mit-card"><div class="mit-realm" style="color:var(--blue-dark);">💻 Career</div><input class="mit-input" id="mit1" placeholder="e.g. 2 DSA problems" onchange="saveMIT()"/></div>
+      <div class="mit-card"><div class="mit-realm" style="color:var(--teal-dark);">🧘 Health</div><input class="mit-input" id="mit2" placeholder="e.g. 30 min yoga" onchange="saveMIT()"/></div>
+      <div class="mit-card"><div class="mit-realm" style="color:var(--coral-dark);">🔥 Discipline</div><input class="mit-input" id="mit3" placeholder="e.g. no Netflix while working" onchange="saveMIT()"/></div>
+    </div>
+
+    <div class="sh"><span class="sh-title">Structured day</span></div>
+    <div class="day-block"><div class="block-label">🌅 Morning · before work</div><div id="bl-morning"></div></div>
+    <div class="day-block"><div class="block-label">🌆 After work</div><div id="bl-afterwork"></div></div>
+    <div class="day-block"><div class="block-label">🌙 Night</div><div id="bl-night"></div></div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:4px;border-top:0.5px solid var(--border);">
+      <div style="font-size:13px;color:var(--muted);">Total XP: <span style="font-weight:700;color:var(--text);" id="todXP">0</span></div>
+      <button style="font-size:12px;padding:6px 13px;border:1px solid var(--border);border-radius:9px;background:transparent;cursor:pointer;color:var(--muted);" onclick="resetDay()">Reset day</button>
+    </div>
+  </div>
+
+  <!-- REALMS -->
+  <div id="tab-realms" style="display:none;">
+    <div class="realm-scroll" id="realmTabs"></div>
+    <div class="sh"><span class="sh-title" id="rTitle">Quests</span><span class="sh-sub" id="rProg"></span></div>
+    <div style="border-left:3px solid var(--purple);padding:8px 12px;border-radius:0 8px 8px 0;background:var(--bg);font-size:12px;color:var(--muted);font-style:italic;margin-bottom:12px;" id="realmMotd"></div>
+    <div class="add-row">
+      <input id="newName" placeholder="Add a quest..." maxlength="70"/>
+      <select id="newDiff"><option value="easy">Easy</option><option value="medium" selected>Med</option><option value="hard">Hard</option></select>
+      <button onclick="addQuest()">+</button>
+    </div>
+    <div id="questList"></div>
+  </div>
+
+  <!-- FOCUS -->
+  <div id="tab-focus" style="display:none;">
+    <div class="focus-metrics">
+      <div class="fm"><div class="fm-val" id="fScore">—</div><div class="fm-lbl">Focus %</div></div>
+      <div class="fm"><div class="fm-val" id="fMins">0</div><div class="fm-lbl">Focus mins</div></div>
+      <div class="fm"><div class="fm-val" id="fDistCnt" style="color:var(--coral);">0</div><div class="fm-lbl">Distractions</div></div>
+    </div>
+    <button class="big-btn big-btn-focus" id="focusBtn" onclick="toggleFocus()">▶  Start focus session</button>
+    <button class="big-btn big-btn-dist" onclick="openDistModal()">⚠️  I got distracted</button>
+    <div class="card">
+      <div class="sh-title" style="margin-bottom:10px;">Anti-distraction rules</div>
+      <div id="rulesList"></div>
+    </div>
+    <div class="sh"><span class="sh-title">Today's log</span><span class="sh-sub" id="distSub">0 logged</span></div>
+    <div id="distLog"></div>
+    <div style="background:var(--bg);border-radius:10px;padding:11px 13px;font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px;" id="distInsight"></div>
+  </div>
+
+  <!-- STREAKS -->
+  <div id="tab-streaks" style="display:none;">
+    <div class="sh"><span class="sh-title">Realm streaks</span><span class="sh-sub">days cleared in a row</span></div>
+    <div class="streak-grid" id="streakGrid"></div>
+    <div class="sh" style="margin-top:4px;"><span class="sh-title">Milestones</span></div>
+    <div class="m-row" id="mRow" style="margin-bottom:14px;"></div>
+    <div class="sh"><span class="sh-title">Streak protection</span></div>
+    <div class="tokens-col">
+      <div class="tcard">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:700;">🛡️ Streak shields</span><span style="font-size:22px;font-weight:700;color:var(--purple);" id="shCnt">0</span></div>
+        <div class="pips" id="shPips"></div>
+        <div style="font-size:11px;color:var(--muted);">Restore a broken streak. Earned every 7 days.</div>
+        <button class="tcard-btn" id="shBtn" onclick="useShield()" disabled>Use shield — restore streak</button>
+      </div>
+      <div class="tcard">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;font-weight:700;">❄️ Freeze tokens</span><span style="font-size:22px;font-weight:700;color:var(--blue);" id="frCnt">0</span></div>
+        <div class="pips" id="frPips"></div>
+        <div style="font-size:11px;color:var(--muted);">Protect all streaks for a rest day. Earned by clearing all realms.</div>
+        <button class="tcard-btn" id="frBtn" onclick="useFreeze()" disabled>Use freeze — protect tomorrow</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOSS -->
+  <div id="tab-boss" style="display:none;">
+    <div class="boss-card">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:32px;" id="bossIcon">👹</div>
+        <div style="flex:1;">
+          <div style="font-size:10px;font-weight:700;color:var(--coral-dark);letter-spacing:0.5px;">WEEKLY BOSS BATTLE</div>
+          <div style="font-size:16px;font-weight:700;margin-top:2px;" id="bossName">The Procrastination Demon</div>
+          <div class="boss-hp-track"><div class="boss-hp-fill" id="bossHp" style="width:100%"></div></div>
+          <div style="font-size:11px;color:var(--coral-dark);" id="bossHpLbl">HP: 100/100</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;background:var(--coral-bg);color:var(--coral-dark);font-size:12px;font-weight:700;padding:6px 12px;border-radius:10px;display:inline-block;" id="bossReward">🏆 500 XP on defeat</div>
+    </div>
+    <div class="sh"><span class="sh-title">Weekly quests</span><span class="sh-sub" id="bossProgSub"></span></div>
+    <div id="bossWeekly"></div>
+    <div class="sh" style="margin-top:4px;"><span class="sh-title">Rewards & penalties</span></div>
+    <div class="card">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:13px;"><span style="font-size:15px;">✅</span> <strong>5-day streak</strong> → small reward (food, outing)</div>
+        <div style="font-size:13px;"><span style="font-size:15px;">🏆</span> <strong>21-day streak</strong> → big reward (shopping, trip)</div>
+        <div style="font-size:13px;color:var(--coral-dark);"><span style="font-size:15px;">❌</span> <strong>Break streak</strong> → no comfort activity that day</div>
+        <div style="font-size:13px;color:var(--coral-dark);"><span style="font-size:15px;">📵</span> <strong>5+ distractions</strong> → no Netflix that evening</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end scroll-body -->
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="switchTab('today')" id="nav-today"><div class="nav-item-icon">🏠</div><div class="nav-item-label">Today</div></div>
+  <div class="nav-item" onclick="switchTab('realms')" id="nav-realms"><div class="nav-item-icon">🌍</div><div class="nav-item-label">Realms</div></div>
+  <div class="nav-item" onclick="switchTab('focus')" id="nav-focus"><div class="nav-item-icon">🎯</div><div class="nav-item-label">Focus</div></div>
+  <div class="nav-item" onclick="switchTab('streaks')" id="nav-streaks"><div class="nav-item-icon">🔥</div><div class="nav-item-label">Streaks</div></div>
+  <div class="nav-item" onclick="switchTab('boss')" id="nav-boss"><div class="nav-item-icon">👹</div><div class="nav-item-label">Boss</div></div>
+</div>
+
+<!-- DISTRACTION MODAL -->
+<div class="modal-wrap" id="distModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚠️ Log distraction</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Source</div>
+    <div id="distTypeOpts">
+      <div class="modal-opt" onclick="pickOpt(this,'type')">📱 Phone (Instagram, WhatsApp...)</div>
+      <div class="modal-opt" onclick="pickOpt(this,'type')">💻 Laptop tab / YouTube</div>
+      <div class="modal-opt" onclick="pickOpt(this,'type')">🧠 Overthinking / daydreaming</div>
+      <div class="modal-opt" onclick="pickOpt(this,'type')">📺 TV / Netflix</div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin:12px 0 8px;">Why?</div>
+    <div id="distReasonOpts">
+      <div class="modal-opt" onclick="pickOpt(this,'reason')">😴 Fatigue / low energy</div>
+      <div class="modal-opt" onclick="pickOpt(this,'reason')">😓 Stuck on a hard problem</div>
+      <div class="modal-opt" onclick="pickOpt(this,'reason')">😐 Boredom</div>
+      <div class="modal-opt" onclick="pickOpt(this,'reason')">🔁 Habit / automatic scroll</div>
+    </div>
+    <div class="modal-btns">
+      <button onclick="closeDistModal()">Cancel</button>
+      <button class="primary" onclick="logDist()">Log it</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DIFF={easy:{xp:10,l:'Easy',bg:'#EAF3DE',c:'#27500A'},medium:{xp:20,l:'Medium',bg:'#EEEDFE',c:'#3C3489'},hard:{xp:35,l:'Hard',bg:'#FAECE7',c:'#712B13'}};
+const LEVELS=[{min:0,n:'Rookie',t:'The Grinder'},{min:100,n:'Initiate',t:'The Committed'},{min:300,n:'Warrior',t:'The Disciplined'},{min:600,n:'Champion',t:'The Relentless'},{min:1000,n:'Legend',t:'The Unstoppable'},{min:1500,n:'Mythic',t:'The Ascendant'}];
+const MS=[{d:3,l:'3-day',i:'🔥',r:'+50 XP'},{d:5,l:'5-day',i:'⚡',r:'Small reward!'},{d:7,l:'7-day',i:'⚔️',r:'+150 XP + 🛡️'},{d:14,l:'14-day',i:'🏹',r:'+300 XP + 🛡️'},{d:21,l:'21-day',i:'💎',r:'BIG reward + ❄️'},{d:30,l:'30-day',i:'👑',r:'+1000 XP'},{d:60,l:'60-day',i:'🌟',r:'Legendary'},{d:100,l:'100-day',i:'🏆',r:'Immortal'}];
+const BOSSES=[{n:'The Procrastination Demon',i:'👹',r:'500 XP'},{n:'The Burnout Beast',i:'🐉',r:'600 XP + Shield'},{n:'The Distraction Hydra',i:'🐙',r:'700 XP + Freeze'},{n:'The Comfort Zone Titan',i:'🧟',r:'800 XP + 2 Shields'}];
+const REALMS={mind:{n:'Mind & Focus',i:'🧠',a:'#7F77DD',ab:'#EEEDFE',at:'#3C3489'},career:{n:'Career & Skills',i:'💻',a:'#378ADD',ab:'#E6F1FB',at:'#0C447C'},health:{n:'Health & Body',i:'🧘',a:'#1D9E75',ab:'#E1F5EE',at:'#085041'},wealth:{n:'Wealth',i:'💰',a:'#EF9F27',ab:'#FAEEDA',at:'#633806'},discipline:{n:'Discipline',i:'🔥',a:'#D85A30',ab:'#FAECE7',at:'#712B13'},growth:{n:'Growth',i:'🌱',a:'#639922',ab:'#EAF3DE',at:'#173404'}};
+const RID=Object.keys(REALMS);
+const DQ={mind:[{id:'m1',n:'2 hrs deep work — zero distractions',d:'hard',f:'Phone away. One tab. This is your edge.'},{id:'m2',n:'No split attention (no Netflix while working)',d:'medium',f:'Your focus is your most valuable asset.'},{id:'m3',n:'Single-task every work block',d:'medium',f:'Depth wins. Every single time.'}],career:[{id:'c1',n:'Solve 2 DSA problems',d:'hard',f:'LeetCode. One problem = one boss defeated.'},{id:'c2',n:'1 hr backend / AI learning',d:'hard',f:'Paper, course, or build. Stay ahead.'},{id:'c3',n:'System design — 20 min',d:'medium',f:'Read, sketch, think. Scale imaginary systems.'},{id:'c4',n:'Flashcard review — 10 min',d:'easy',f:'Spaced repetition is your cheat code.'}],health:[{id:'h1',n:'30 min yoga / mobility',d:'hard',f:'Heal the body. Move every day.'},{id:'h2',n:'Anti-inflammatory meals today',d:'medium',f:'Food is medicine. Choose wisely.'},{id:'h3',n:'8,000 steps',d:'easy',f:'Move between deep work blocks.'}],wealth:[{id:'w1',n:"Log today's spending",d:'easy',f:'What gets tracked gets managed.'},{id:'w2',n:'Review savings / investment progress',d:'medium',f:'Wealth is built in boring moments.'},{id:'w3',n:'One income-building action',d:'hard',f:'Pinterest, side project, or skill investment.'}],discipline:[{id:'d1',n:'Did exactly what I planned — no excuses',d:'hard',f:'Identity: I am someone who does what I say.'},{id:'d2',n:'No comfort activity before work is done',d:'medium',f:'Reward comes after the work. Never before.'},{id:'d3',n:'Used anti-distraction mode during work',d:'medium',f:'Shield yourself from the algorithm.'}],growth:[{id:'g1',n:'Morning journal — 5 min',d:'medium',f:'3 gratitudes. 1 intention. Go.'},{id:'g2',n:'Box breathing / meditation — 10 min',d:'easy',f:'4-4-4-4. Reset the nervous system.'},{id:'g3',n:'Evening reflection — what went well?',d:'easy',f:'Growth lives in the review.'}]};
+const BLOCKS={morning:['Solve 1 DSA problem','Light yoga / movement','Journal + set intention'],afterwork:['Deep work block (1–2 hrs)','Backend / AI learning','DSA problem #2'],night:['Reflection + plan tomorrow','Gratitude journal','Screens off 30 min before bed']};
+const MOTD={mind:["You don't rise to your goals. You fall to your systems.","Depth wins. Every single time.","One focused hour > three distracted hours."],career:["The algorithm doesn't care about your mood.","Top 1% isn't luck. It's 1000 small choices.","Every expert was a beginner who refused to quit."],health:["Your body keeps the score — make it a high one.","Move daily. The body is the hardware. Maintain it.","Heal intentionally."],wealth:["Wealth is built in boring moments of discipline.","Every rupee saved today is two rupees tomorrow.","Track it. Own it."],discipline:["Show up on the days you don't feel like it. That's the rep.","Motivation is amateur. Systems are professional.","I am someone who does what I say."],growth:["Journal to debug your brain.","Peace is your response to chaos.","Calm is a competitive advantage."]};
+const BWT=[{id:'bw1',n:'Solve 10–15 DSA problems this week'},{id:'bw2',n:'Complete 1 mock interview'},{id:'bw3',n:'Build or ship 1 feature / project'},{id:'bw4',n:'Weekly reflect + plan next week'},{id:'bw5',n:'Zero Netflix during work — all 5 days'},{id:'bw6',n:'Hit all daily quests 4+ days this week'}];
+const RULES=['📵 No split attention — zero multitasking','📱 Phone in another room during deep work','📺 Netflix only after all work is done','🔁 When urge hits: breathe, walk, or write "why am I stuck?"','🎯 Track distractions — just the number, every day'];
+const AFFIRMS=['"I am a focused, disciplined engineer building a top 1% career."','"I do what I say. Every day. No excuses."','"I am building the version of me I will be proud of in 5 years."','"Discipline today. Freedom tomorrow."','"I am someone who shows up — especially when it\'s hard."'];
+
+function def(){return{completed:{},custom:{mind:[],career:[],health:[],wealth:[],discipline:[],growth:[]},activeRealm:'career',activeTab:'today',shields:0,freezes:0,frozen:{},streaks:{mind:0,career:0,health:0,wealth:0,discipline:0,growth:0},milestones:[],distractions:[],focusMins:0,focusSession:null,bossTasks:{},mits:['','',''],blockDone:{}};}
+let S=(()=>{try{const s=JSON.parse(localStorage.getItem('lifeosv2')||'null');return s?Object.assign(def(),s):def();}catch(e){return def();}})();
+function save(){try{localStorage.setItem('lifeosv2',JSON.stringify(S));}catch(e){}}
+
+function allQ(r){return[...DQ[r],...(S.custom[r]||[])];}
+function xpEarned(){let x=0;RID.forEach(r=>allQ(r).forEach(t=>{if(S.completed[t.id])x+=DIFF[t.d||t.diff].xp;}));return x;}
+function lvlInfo(xp){let l=0;for(let i=LEVELS.length-1;i>=0;i--){if(xp>=LEVELS[i].min){l=i;break;}}const c=LEVELS[l],nx=LEVELS[l+1];return{lv:l+1,name:c.n,title:c.t,inLv:xp-c.min,need:nx?nx.min-c.min:500};}
+function rDone(r){return allQ(r).filter(t=>S.completed[t.id]).length;}
+function rTotal(r){return allQ(r).length;}
+function rCleared(r){return rDone(r)===rTotal(r)&&rTotal(r)>0;}
+function allCleared(){return RID.every(r=>rCleared(r));}
+function bestStreak(){return Math.max(0,...RID.map(r=>S.streaks[r]||0));}
+function distCount(){return(S.distractions||[]).length;}
+function focusScore(){const d=distCount();return d===0?100:d<=2?85:d<=5?65:d<=10?40:20;}
+function distInsight(){const d=distCount();if(d===0)return'Perfect. Zero distractions. You\'re building the neural pathways of a top performer.';if(d<=2)return d+' distraction(s) — clean day. Notice the pattern and keep this up.';if(d<=5)return d+' distractions. Pick one trigger to remove tomorrow. Small change, big result.';return d+' distractions today. Rule to try: phone in another room during every work block.';}
+
+let tt;
+function toast(msg,col){const el=document.getElementById('toast');el.textContent=msg;el.style.background=col||'#534AB7';el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2500);}
+
+function switchTab(t){
+  ['today','realms','focus','streaks','boss'].forEach(id=>{
+    document.getElementById('tab-'+id).style.display=id===t?'block':'none';
+    const ni=document.getElementById('nav-'+id);
+    if(ni)ni.classList.toggle('active',id===t);
+  });
+  document.getElementById('scrollBody').scrollTop=0;
+  S.activeTab=t;save();render();
+}
+
+function toggleQuest(id,realm){
+  const wasC=rCleared(realm),wasAll=allCleared();
+  if(S.completed[id])delete S.completed[id];
+  else{
+    S.completed[id]=true;
+    const t=allQ(realm).find(q=>q.id===id);
+    if(t)toast('+'+DIFF[t.d||t.diff].xp+' XP — '+['Keep going!','Unstoppable!','On fire!','That\'s the way!'][~~(Math.random()*4)]);
+    if(!wasC&&rCleared(realm))setTimeout(()=>toast(REALMS[realm].i+' '+REALMS[realm].n+' cleared!','#1D9E75'),500);
+    if(!wasAll&&allCleared()){S.freezes=Math.min(6,S.freezes+1);setTimeout(()=>toast('🏆 ALL REALMS CLEARED! Freeze token earned!','#185FA5'),1000);}
+  }
+  checkMS();save();render();
+}
+function addQuest(){
+  const nm=document.getElementById('newName').value.trim();if(!nm)return;
+  const df=document.getElementById('newDiff').value,id='c_'+Date.now(),r=S.activeRealm;
+  const mo=MOTD[r];S.custom[r].push({id,n:nm,d:df,f:mo[~~(Math.random()*mo.length)]});
+  document.getElementById('newName').value='';save();render();toast('Quest added!');
+}
+function delQuest(e,id,r){e.stopPropagation();S.custom[r]=(S.custom[r]||[]).filter(t=>t.id!==id);delete S.completed[id];save();render();}
+function switchRealm(r){S.activeRealm=r;save();render();}
+
+function checkMS(){
+  const best=bestStreak();
+  MS.forEach(m=>{
+    if(best>=m.d&&!(S.milestones||[]).includes(m.d)){
+      if(!S.milestones)S.milestones=[];
+      S.milestones.push(m.d);
+      if(m.d===7||m.d===14)S.shields=Math.min(6,S.shields+1);
+      if(m.d===21)S.freezes=Math.min(6,S.freezes+1);
+      setTimeout(()=>toast(m.i+' Milestone: '+m.l+'! '+m.r,'#1D9E75'),700);
+    }
+  });
+}
+function useShield(){
+  if(!S.shields)return;
+  const b=RID.find(r=>!(S.streaks[r]>0));
+  if(!b){toast('No broken streaks!','#EF9F27');return;}
+  S.shields--;S.streaks[b]=1;save();render();toast('🛡️ '+REALMS[b].n+' streak restored','#534AB7');
+}
+function useFreeze(){
+  if(!S.freezes)return;
+  S.freezes--;RID.forEach(r=>{S.frozen[r]=true;});save();render();toast('❄️ Streaks frozen for tomorrow!','#185FA5');
+}
+
+let distType='',distReason='';
+function openDistModal(){document.getElementById('distModal').classList.add('open');}
+function closeDistModal(){document.getElementById('distModal').classList.remove('open');distType='';distReason='';document.querySelectorAll('.modal-opt').forEach(el=>el.classList.remove('selected'));}
+function pickOpt(el,g){el.closest('div').querySelectorAll('.modal-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');if(g==='type')distType=el.textContent.trim();else distReason=el.textContent.trim();}
+function logDist(){
+  if(!distType||!distReason){toast('Pick source + reason','#EF9F27');return;}
+  if(!S.distractions)S.distractions=[];
+  S.distractions.push({type:distType,reason:distReason,time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})});
+  const d=S.distractions.length;
+  if(d===5)toast('⚠️ 5 distractions — no Netflix tonight','#D85A30');
+  else toast('Logged. Awareness is step one.','#888');
+  closeDistModal();save();render();
+}
+function toggleFocus(){
+  if(!S.focusSession){
+    S.focusSession=Date.now();
+    document.getElementById('focusBtn').classList.add('active');
+    document.getElementById('focusBtn').textContent='⏸  Stop focus session';
+    toast('Focus session on. Phone away.','#1D9E75');
+  } else {
+    const mins=Math.max(1,Math.round((Date.now()-S.focusSession)/60000));
+    S.focusMins=(S.focusMins||0)+mins;S.focusSession=null;
+    document.getElementById('focusBtn').classList.remove('active');
+    document.getElementById('focusBtn').textContent='▶  Start focus session';
+    toast(mins+' min logged! Total: '+S.focusMins+' min','#1D9E75');
+  }
+  save();render();
+}
+function toggleBlock(b,i){const k=b+'_'+i;if(!S.blockDone)S.blockDone={};if(S.blockDone[k])delete S.blockDone[k];else S.blockDone[k]=true;save();render();}
+function toggleBossTask(id){if(!S.bossTasks)S.bossTasks={};if(S.bossTasks[id])delete S.bossTasks[id];else{S.bossTasks[id]=true;toast('Weekly quest progress!','#D85A30');}save();render();}
+function saveMIT(){S.mits=[document.getElementById('mit1').value,document.getElementById('mit2').value,document.getElementById('mit3').value];save();}
+function resetDay(){S.completed={};S.distractions=[];S.focusMins=0;S.focusSession=null;S.blockDone={};save();render();toast('Day reset. Fresh start.');}
+
+function render(){
+  const xp=xpEarned(),li=lvlInfo(xp),now=new Date();
+  document.getElementById('pTitle').textContent=li.title;
+  document.getElementById('lvlBadge').textContent='Lv '+li.lv+' · '+li.name;
+  document.getElementById('xpFill').style.width=Math.round(li.inLv/li.need*100)+'%';
+  document.getElementById('xpLbl').textContent=li.inLv+'/'+li.need+' XP';
+  document.getElementById('dateLabel').textContent=now.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+  const fs=focusScore();
+  document.getElementById('focusLabel').textContent='Focus: '+fs+'%';
+  document.getElementById('focusLabel').style.color=fs>=80?'#1D9E75':fs>=50?'#EF9F27':'#E24B4A';
+  document.getElementById('affirmText').textContent=AFFIRMS[now.getDate()%AFFIRMS.length];
+  document.getElementById('sXP').textContent=xp;document.getElementById('todXP').textContent=xp;
+  document.getElementById('sDone').textContent=RID.reduce((s,r)=>s+rDone(r),0);
+  document.getElementById('sDist').textContent=distCount();
+  document.getElementById('sStreak').textContent=bestStreak();
+  // MITs
+  const m=S.mits||['','',''];
+  document.getElementById('mit1').value=m[0]||'';document.getElementById('mit2').value=m[1]||'';document.getElementById('mit3').value=m[2]||'';
+  // blocks
+  ['morning','afterwork','night'].forEach(b=>{
+    const cols={morning:'#7F77DD',afterwork:'#1D9E75',night:'#378ADD'};
+    document.getElementById('bl-'+b).innerHTML=BLOCKS[b].map((t,i)=>{
+      const k=b+'_'+i,done=S.blockDone&&S.blockDone[k];
+      return`<div class="block-task${done?' done':''}" onclick="toggleBlock('${b}',${i})"><div class="bdot" style="${done?'background:'+cols[b]+';':''}"></div><span>${t}</span></div>`;
+    }).join('');
+  });
+  // realm tabs
+  document.getElementById('realmTabs').innerHTML=RID.map(r=>{
+    const rm=REALMS[r],done=rDone(r),tot=rTotal(r),pct=tot>0?Math.round(done/tot*100):0,active=r===S.activeRealm;
+    return`<div class="rtab${active?' active':''}" style="${active?'border-color:'+rm.a+';':''}" onclick="switchRealm('${r}')">
+      <span class="rtab-icon">${rm.i}</span>
+      <span class="rtab-name" style="${active?'color:'+rm.a+';':''}">${rm.n}</span>
+      <span class="rtab-prog" style="color:${rm.a};">${done}/${tot}</span>
+      <div class="realm-bar"><div class="realm-bar-fill" style="width:${pct}%;background:${rm.a};"></div></div>
+    </div>`;
+  }).join('');
+  // realm quests
+  const r=S.activeRealm,rm=REALMS[r];
+  document.getElementById('rTitle').textContent=rm.i+'  '+rm.n;
+  document.getElementById('rProg').textContent=rDone(r)+'/'+rTotal(r)+' done';
+  const mo=MOTD[r];document.getElementById('realmMotd').textContent='"'+mo[now.getDate()%mo.length]+'"';
+  document.getElementById('questList').innerHTML=allQ(r).map(t=>{
+    const diff=t.d||t.diff,done=!!S.completed[t.id],df=DIFF[diff],isC=!DQ[r].find(x=>x.id===t.id);
+    return`<div class="quest${done?' done':''}" onclick="toggleQuest('${t.id}','${r}')">
+      <div class="chk" style="${done?'background:'+rm.a+';':''}"><svg viewBox="0 0 12 12" fill="none"><polyline points="1.5,6 4.5,9 10.5,2.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="qbody"><div class="qname">${t.n||t.name}</div><div class="qflavor">${t.f||''}</div></div>
+      <div class="qright">
+        <span class="badge" style="background:${df.bg};color:${df.c}">${df.l}</span>
+        <span class="badge" style="background:${rm.ab};color:${rm.at}">+${df.xp} XP</span>
+        ${isC?`<button style="font-size:10px;color:var(--subtle);background:none;border:none;cursor:pointer;margin-top:2px;" onclick="delQuest(event,'${t.id}','${r}')">✕</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  // focus
+  document.getElementById('fScore').textContent=fs+'%';
+  document.getElementById('fScore').style.color=fs>=80?'#1D9E75':fs>=50?'#EF9F27':'#E24B4A';
+  document.getElementById('fMins').textContent=S.focusMins||0;
+  document.getElementById('fDistCnt').textContent=distCount();
+  document.getElementById('rulesList').innerHTML=RULES.map(r=>`<div class="rule-row"><span style="font-size:15px;">${r.split(' ')[0]}</span><span>${r.substring(r.indexOf(' ')+1)}</span></div>`).join('');
+  const dists=S.distractions||[];
+  document.getElementById('distSub').textContent=dists.length+' logged today';
+  document.getElementById('distLog').innerHTML=dists.length===0?'<div style="font-size:12px;color:var(--muted);padding:8px 0 4px;">Nothing logged yet.</div>':dists.map((d,i)=>`<div class="dist-entry"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:11px;color:var(--muted);">${d.time}</span><span class="dtag">${d.type.split(' ')[0]}</span><span>${d.reason}</span></div><span style="font-size:10px;color:var(--muted);">#${i+1}</span></div>`).join('');
+  document.getElementById('distInsight').textContent=distInsight();
+  // streaks
+  document.getElementById('streakGrid').innerHTML=RID.map(r=>{
+    const rm=REALMS[r],s=S.streaks[r]||0,fz=S.frozen&&S.frozen[r],nx=MS.find(m=>m.d>s&&!(S.milestones||[]).includes(m.d));
+    return`<div class="scard${fz?' frozen':''}"><div style="font-size:13px;">${fz?'❄️':rm.i}</div><div class="snum" style="color:${s>0?rm.a:'var(--subtle)'}">${s}</div><div style="font-size:10px;color:var(--muted);margin-top:1px;">${rm.n}</div><div style="font-size:9px;color:${nx?'var(--purple)':'#1D9E75'};margin-top:2px;">${nx?nx.d-s+'d to '+nx.i:'🎉'}</div></div>`;
+  }).join('');
+  const best=bestStreak(),nxM=MS.find(m=>!(S.milestones||[]).includes(m.d));
+  document.getElementById('mRow').innerHTML=MS.map(m=>{const done=(S.milestones||[]).includes(m.d),isN=nxM&&m.d===nxM.d;return`<div class="mchip${done?' done':isN?' next':''}"><span style="font-size:13px;">${m.i}</span><span>${m.l}</span>${done?'<span>✓</span>':isN?`<span>(${best}/${m.d})</span>`:''}`;}).join('');
+  const sc=S.shields||0,fc=S.freezes||0;
+  document.getElementById('shCnt').textContent=sc;document.getElementById('frCnt').textContent=fc;
+  document.getElementById('shPips').innerHTML=Array.from({length:Math.max(sc,3)},(_,i)=>`<div class="pip${i>=sc?' used':''}" style="border-color:#7F77DD;color:#534AB7;">🛡️</div>`).join('');
+  document.getElementById('frPips').innerHTML=Array.from({length:Math.max(fc,3)},(_,i)=>`<div class="pip${i>=fc?' used':''}" style="border-color:#378ADD;color:#185FA5;">❄️</div>`).join('');
+  document.getElementById('shBtn').disabled=!sc;document.getElementById('frBtn').disabled=!fc;
+  // boss
+  const boss=BOSSES[li.lv%BOSSES.length];
+  document.getElementById('bossIcon').textContent=boss.i;document.getElementById('bossName').textContent=boss.n;document.getElementById('bossReward').textContent='🏆 '+boss.r+' on defeat';
+  const bd=BWT.filter(t=>S.bossTasks&&S.bossTasks[t.id]).length,hp=Math.max(0,Math.round(100-bd/BWT.length*100));
+  document.getElementById('bossHp').style.width=hp+'%';document.getElementById('bossHpLbl').textContent='HP: '+hp+'/100';
+  document.getElementById('bossProgSub').textContent=bd+' / '+BWT.length+' done this week';
+  document.getElementById('bossWeekly').innerHTML=BWT.map(t=>{const done=S.bossTasks&&S.bossTasks[t.id];return`<div class="boss-task${done?' done':''}" onclick="toggleBossTask('${t.id}')"><div style="width:22px;height:22px;border-radius:50%;border:1.5px solid ${done?'transparent':'var(--coral)'};background:${done?'var(--coral)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">${done?'<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><polyline points="1.5,6 4.5,9 10.5,2.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div><span>${t.n}</span></div>`;}).join('');
+}
+
+document.getElementById('newName').addEventListener('keydown',e=>{if(e.key==='Enter')addQuest();});
+['mit1','mit2','mit3'].forEach(id=>document.getElementById(id).addEventListener('change',saveMIT));
+document.getElementById('distModal').addEventListener('click',function(e){if(e.target===this)closeDistModal();});
+switchTab(S.activeTab||'today');
+</script>
+</body>
+</html>
