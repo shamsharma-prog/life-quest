@@ -426,6 +426,9 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
+// handle redirect result from mobile Google sign-in
+auth.getRedirectResult().catch(err => console.error('Redirect error:', err));
+
 let currentUser = null;
 let saveTimer   = null;
 
@@ -478,10 +481,18 @@ auth.onAuthStateChanged(async (user) => {
 // ── auth actions ─────────────────────────────────────────────────────
 function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(err => {
-    toast('Sign-in failed — try again', '#D85A30');
-    console.error(err);
-  });
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  if (isMobile) {
+    auth.signInWithRedirect(provider).catch(err => {
+      toast('Sign-in failed — try again', '#D85A30');
+      console.error(err);
+    });
+  } else {
+    auth.signInWithPopup(provider).catch(err => {
+      toast('Sign-in failed — try again', '#D85A30');
+      console.error(err);
+    });
+  }
 }
 function openUserMenu()  { document.getElementById('userModal').classList.add('open'); }
 function closeUserMenu() { document.getElementById('userModal').classList.remove('open'); }
