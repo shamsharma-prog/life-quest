@@ -431,47 +431,59 @@ auth.getRedirectResult().catch(err => console.error('Redirect error:', err));
 
 let currentUser = null;
 let saveTimer   = null;
+let unsubscribeSnapshot = null;
 
 // ── auth state ───────────────────────────────────────────────────────
-auth.onAuthStateChanged(async (user) => {
+auth.onAuthStateChanged((user) => {
   if (user) {
     currentUser = user;
-    document.getElementById('loginScreen').style.display  = 'none';
+    document.getElementById('loginScreen').style.display   = 'none';
     document.getElementById('loadingScreen').style.display = 'flex';
     document.getElementById('appRoot').classList.remove('visible');
 
-    // load from Firestore
-    try {
-      const doc = await db.collection('users').doc(user.uid).get();
-      S = doc.exists ? Object.assign(def(), doc.data()) : def();
-    } catch(e) {
-      console.error('Firestore load error:', e);
-      S = def();
-      toast('Offline — using local data', '#EF9F27');
-    }
-
-    // update avatar in header and menu
-    const img     = document.getElementById('avatarImg');
-    const emoji   = document.getElementById('avatarEmoji');
-    const mImg    = document.getElementById('menuAvatarImg');
-    const mEmoji  = document.getElementById('menuAvatarEmoji');
-    const mName   = document.getElementById('menuUserName');
-    const mEmail  = document.getElementById('menuUserEmail');
-
-    mName.textContent  = user.displayName || 'Player';
-    mEmail.textContent = user.email || '';
-
+    // avatar + user info
+    document.getElementById('menuUserName').textContent  = user.displayName || 'Player';
+    document.getElementById('menuUserEmail').textContent = user.email || '';
     if (user.photoURL) {
-      img.src = user.photoURL;   img.style.display = 'block';   emoji.style.display = 'none';
-      mImg.src = user.photoURL;  mImg.style.display = 'block';  mEmoji.style.display = 'none';
+      document.getElementById('avatarImg').src             = user.photoURL;
+      document.getElementById('avatarImg').style.display   = 'block';
+      document.getElementById('avatarEmoji').style.display = 'none';
+      document.getElementById('menuAvatarImg').src             = user.photoURL;
+      document.getElementById('menuAvatarImg').style.display   = 'block';
+      document.getElementById('menuAvatarEmoji').style.display = 'none';
     }
 
-    document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('appRoot').classList.add('visible');
-    switchTab(S.activeTab || 'today');
+    // real-time listener — fires on initial load AND on every change from any device
+    let appLaunched = false;
+    if (unsubscribeSnapshot) unsubscribeSnapshot();
+    unsubscribeSnapshot = db.collection('users').doc(user.uid)
+      .onSnapshot({ includeMetadataChanges: true }, (doc) => {
+        // skip our own optimistic writes — only react to server-confirmed data
+        if (doc.metadata.hasPendingWrites) return;
+
+        if (doc.exists) S = Object.assign(def(), doc.data());
+
+        if (!appLaunched) {
+          appLaunched = true;
+          document.getElementById('loadingScreen').style.display = 'none';
+          document.getElementById('appRoot').classList.add('visible');
+          switchTab(S.activeTab || 'today');
+        } else {
+          render(); // remote change from another device — re-render instantly
+        }
+      }, (err) => {
+        console.error('Firestore error:', err);
+        if (!appLaunched) {
+          appLaunched = true;
+          document.getElementById('loadingScreen').style.display = 'none';
+          document.getElementById('appRoot').classList.add('visible');
+          switchTab('today');
+        }
+      });
 
   } else {
     currentUser = null;
+    if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
     document.getElementById('appRoot').classList.remove('visible');
     document.getElementById('loadingScreen').style.display = 'none';
     document.getElementById('loginScreen').style.display  = 'flex';
