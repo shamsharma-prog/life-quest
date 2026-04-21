@@ -182,6 +182,47 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* sync indicator */
 .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);display:inline-block;margin-left:4px;transition:background 0.3s;}
 .sync-dot.saving{background:var(--amber);}
+
+/* dark mode */
+html.dark{
+  --bg:#111110;--surface:#1c1c1a;--border:rgba(255,255,255,0.09);--text:#f0f0ee;--muted:#777;--subtle:#3a3a38;
+  --purple-bg:#2a2752;--purple-dark:#b8b2f5;
+  --teal-bg:#0d2e22;--teal-dark:#5ecda2;
+  --amber-bg:#2d1f00;--amber-dark:#f5c060;
+  --blue-bg:#0d1e30;--blue-dark:#7db8f0;
+  --coral-bg:#2e1208;--coral-dark:#f59070;
+  --green-bg:#141f05;--green-dark:#9acc50;
+}
+html.dark .google-btn{background:var(--surface);color:var(--text);}
+.dark-toggle{background:none;border:none;cursor:pointer;font-size:17px;padding:4px 6px;border-radius:8px;line-height:1;color:var(--muted);}
+
+/* heatmap */
+.heatmap-wrap{overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;margin-bottom:12px;}
+.heatmap-wrap::-webkit-scrollbar{display:none;}
+.heatmap{display:flex;gap:3px;width:max-content;}
+.hmap-col{display:flex;flex-direction:column;gap:3px;}
+.hmap-cell{width:13px;height:13px;border-radius:2px;background:var(--bg);border:0.5px solid var(--border);flex-shrink:0;cursor:default;}
+.hmap-cell.l1{background:#c8edd9;border-color:#a3d9be;}
+.hmap-cell.l2{background:#6dbe9e;border-color:#4fa882;}
+.hmap-cell.l3{background:#1D9E75;border-color:#157a5a;}
+.hmap-cell.lp{background:#7F77DD;border-color:#5f57c0;}
+html.dark .hmap-cell.l1{background:#1a3d2b;border-color:#234d37;}
+html.dark .hmap-cell.l2{background:#1e5e3c;border-color:#267549;}
+html.dark .hmap-cell.l3{background:#1D9E75;border-color:#157a5a;}
+html.dark .hmap-cell.lp{background:#4b44aa;border-color:#5f57c0;}
+.hmap-months{display:flex;gap:3px;width:max-content;margin-bottom:4px;}
+.hmap-month-lbl{font-size:9px;color:var(--muted);font-weight:600;width:max-content;}
+
+/* wins card */
+.wins-card{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px;}
+.wins-textarea{width:100%;font-size:13px;border:none;outline:none;background:transparent;color:var(--text);resize:none;min-height:70px;font-family:inherit;line-height:1.5;}
+.wins-textarea::placeholder{color:var(--subtle);}
+
+/* distraction patterns */
+.pattern-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);}
+.pattern-row:last-child{border-bottom:none;}
+.pattern-bar-track{flex:1;height:5px;background:var(--bg);border-radius:3px;margin:0 10px;overflow:hidden;}
+.pattern-bar-fill{height:100%;border-radius:3px;background:var(--coral);}
 </style>
 </head>
 <body>
@@ -225,12 +266,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
       </div>
     </div>
-    <div style="text-align:right;">
-      <div style="font-size:11px;color:var(--muted);display:flex;align-items:center;justify-content:flex-end;gap:3px;">
-        <span id="dateLabel"></span>
-        <span class="sync-dot" id="syncDot" title="Synced"></span>
+    <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button class="dark-toggle" id="darkBtn" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
+        <div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:3px;">
+          <span id="dateLabel"></span>
+          <span class="sync-dot" id="syncDot" title="Synced"></span>
+        </div>
       </div>
-      <div style="font-size:12px;font-weight:600;margin-top:2px;" id="focusLabel">Focus: —</div>
+      <div style="font-size:12px;font-weight:600;" id="focusLabel">Focus: —</div>
     </div>
   </div>
 </div>
@@ -259,6 +303,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="day-block"><div class="block-label">🌅 Morning · before work</div><div id="bl-morning"></div></div>
     <div class="day-block"><div class="block-label">🌆 After work</div><div id="bl-afterwork"></div></div>
     <div class="day-block"><div class="block-label">🌙 Night</div><div id="bl-night"></div></div>
+
+    <div class="sh" style="margin-top:4px;"><span class="sh-title">✍️ Today's wins</span><span class="sh-sub">what did you solve / ship?</span></div>
+    <div class="wins-card">
+      <textarea class="wins-textarea" id="winsInput" placeholder="e.g. Solved 2 DP problems, finished Kafka lecture, hit 8k steps..." onchange="saveWins()"></textarea>
+    </div>
 
     <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:4px;border-top:0.5px solid var(--border);">
       <div style="font-size:13px;color:var(--muted);">Total XP: <span style="font-weight:700;color:var(--text);" id="todXP">0</span></div>
@@ -295,10 +344,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="sh"><span class="sh-title">Today's log</span><span class="sh-sub" id="distSub">0 logged</span></div>
     <div id="distLog"></div>
     <div style="background:var(--bg);border-radius:10px;padding:11px 13px;font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px;" id="distInsight"></div>
+    <div class="sh" style="margin-top:4px;"><span class="sh-title">Weekly patterns</span><span class="sh-sub" id="patternSub"></span></div>
+    <div class="card" id="distPatterns"></div>
   </div>
 
   <!-- STREAKS -->
   <div id="tab-streaks" style="display:none;">
+    <div class="sh"><span class="sh-title">Activity</span><span class="sh-sub" id="heatmapSub">last 91 days</span></div>
+    <div class="heatmap-wrap">
+      <div class="hmap-months" id="hmapMonths"></div>
+      <div class="heatmap" id="heatmap"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;font-size:10px;color:var(--muted);">
+      <span>Less</span>
+      <div style="width:10px;height:10px;border-radius:2px;background:var(--bg);border:0.5px solid var(--border);"></div>
+      <div style="width:10px;height:10px;border-radius:2px;" class="hmap-cell l1"></div>
+      <div style="width:10px;height:10px;border-radius:2px;" class="hmap-cell l2"></div>
+      <div style="width:10px;height:10px;border-radius:2px;" class="hmap-cell l3"></div>
+      <div style="width:10px;height:10px;border-radius:2px;" class="hmap-cell lp"></div>
+      <span>All cleared</span>
+    </div>
     <div class="sh"><span class="sh-title">Realm streaks</span><span class="sh-sub">days cleared in a row</span></div>
     <div class="streak-grid" id="streakGrid"></div>
     <div class="sh" style="margin-top:4px;"><span class="sh-title">Milestones</span></div>
@@ -467,8 +532,10 @@ auth.onAuthStateChanged((user) => {
           appLaunched = true;
           document.getElementById('loadingScreen').style.display = 'none';
           document.getElementById('appRoot').classList.add('visible');
+          applyDark();
           switchTab(S.activeTab || 'today');
         } else {
+          applyDark();
           render(); // remote change from another device — re-render instantly
         }
       }, (err) => {
@@ -516,6 +583,7 @@ function doSignOut() {
 // ── save (debounced, 1.5 s) ──────────────────────────────────────────
 function save() {
   if (!currentUser) return;
+  snapshotToday();
   const dot = document.getElementById('syncDot');
   dot.classList.add('saving');
   clearTimeout(saveTimer);
@@ -550,8 +618,38 @@ const BWT=[{id:'bw1',n:'Solve 10–15 DSA problems this week'},{id:'bw2',n:'Comp
 const RULES=['📵 No split attention — zero multitasking','📱 Phone in another room during deep work','📺 Netflix only after all work is done','🔁 When urge hits: breathe, walk, or write "why am I stuck?"','🎯 Track distractions — just the number, every day'];
 const AFFIRMS=['"I am a focused, disciplined engineer building a top 1% career."','"I do what I say. Every day. No excuses."','"I am building the version of me I will be proud of in 5 years."','"Discipline today. Freedom tomorrow."','"I am someone who shows up — especially when it\'s hard."'];
 
-function def(){return{completed:{},custom:{mind:[],career:[],health:[],wealth:[],discipline:[],growth:[]},activeRealm:'career',activeTab:'today',shields:0,freezes:0,frozen:{},streaks:{mind:0,career:0,health:0,wealth:0,discipline:0,growth:0},milestones:[],distractions:[],focusMins:0,focusSession:null,bossTasks:{},mits:['','',''],blockDone:{}};}
+function def(){return{completed:{},custom:{mind:[],career:[],health:[],wealth:[],discipline:[],growth:[]},activeRealm:'career',activeTab:'today',shields:0,freezes:0,frozen:{},streaks:{mind:0,career:0,health:0,wealth:0,discipline:0,growth:0},milestones:[],distractions:[],focusMins:0,focusSession:null,bossTasks:{},mits:['','',''],blockDone:{},history:{},wins:'',darkMode:false};}
 let S = def();
+
+function getToday(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+
+function snapshotToday(){
+  if(!S.history)S.history={};
+  const today=getToday();
+  const byType={},byReason={};
+  (S.distractions||[]).forEach(d=>{
+    const t=d.type.split(' ')[0];byType[t]=(byType[t]||0)+1;
+    const r=d.reason.split(' ')[0];byReason[r]=(byReason[r]||0)+1;
+  });
+  S.history[today]={
+    xp:xpEarned(),
+    done:RID.reduce((s,r)=>s+rDone(r),0),
+    total:RID.reduce((s,r)=>s+rTotal(r),0),
+    allCleared:allCleared(),
+    focusMins:S.focusMins||0,
+    distractionCount:distCount(),
+    byType,byReason,
+    wins:S.wins||''
+  };
+}
+
+function applyDark(){
+  document.documentElement.classList.toggle('dark',!!S.darkMode);
+  document.getElementById('darkBtn').textContent=S.darkMode?'☀️':'🌙';
+}
+function toggleDark(){S.darkMode=!S.darkMode;applyDark();save();}
+
+function saveWins(){S.wins=document.getElementById('winsInput').value;save();}
 
 function allQ(r){return[...DQ[r],...(S.custom[r]||[])];}
 function xpEarned(){let x=0;RID.forEach(r=>allQ(r).forEach(t=>{if(S.completed[t.id])x+=DIFF[t.d||t.diff].xp;}));return x;}
@@ -666,6 +764,7 @@ function render(){
   document.getElementById('focusLabel').textContent='Focus: '+fs+'%';
   document.getElementById('focusLabel').style.color=fs>=80?'#1D9E75':fs>=50?'#EF9F27':'#E24B4A';
   document.getElementById('affirmText').textContent=AFFIRMS[now.getDate()%AFFIRMS.length];
+  document.getElementById('winsInput').value=S.wins||'';
   document.getElementById('sXP').textContent=xp;document.getElementById('todXP').textContent=xp;
   document.getElementById('sDone').textContent=RID.reduce((s,r)=>s+rDone(r),0);
   document.getElementById('sDist').textContent=distCount();
@@ -730,6 +829,105 @@ function render(){
   document.getElementById('bossHp').style.width=hp+'%';document.getElementById('bossHpLbl').textContent='HP: '+hp+'/100';
   document.getElementById('bossProgSub').textContent=bd+' / '+BWT.length+' done this week';
   document.getElementById('bossWeekly').innerHTML=BWT.map(t=>{const done=S.bossTasks&&S.bossTasks[t.id];return`<div class="boss-task${done?' done':''}" onclick="toggleBossTask('${t.id}')"><div style="width:22px;height:22px;border-radius:50%;border:1.5px solid ${done?'transparent':'var(--coral)'};background:${done?'var(--coral)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">${done?'<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><polyline points="1.5,6 4.5,9 10.5,2.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div><span>${t.n}</span></div>`;}).join('');
+  renderHeatmap();
+  renderDistPatterns();
+}
+
+function renderHeatmap(){
+  const DAYS=91,cells=[],now=new Date();
+  // build array of last 91 days oldest→newest
+  for(let i=DAYS-1;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);cells.push(d);}
+  // group into weeks (columns of 7)
+  const weeks=[];let week=[];
+  // pad start so first day aligns to its weekday
+  const startDay=cells[0].getDay(); // 0=Sun
+  for(let p=0;p<startDay;p++)week.push(null);
+  cells.forEach(d=>{week.push(d);if(week.length===7){weeks.push(week);week=[];}});
+  if(week.length)weeks.push(week);
+
+  // month labels — one per week column where month changes
+  const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let lastMonth=-1;
+  const monthsEl=document.getElementById('hmapMonths');
+  monthsEl.innerHTML='';
+  weeks.forEach(w=>{
+    const firstReal=w.find(d=>d);
+    const lbl=document.createElement('div');
+    lbl.style.width='16px';lbl.style.flexShrink='0';
+    lbl.className='hmap-month-lbl';
+    if(firstReal&&firstReal.getMonth()!==lastMonth){lbl.textContent=monthNames[firstReal.getMonth()];lastMonth=firstReal.getMonth();}
+    monthsEl.appendChild(lbl);
+  });
+
+  const heatmapEl=document.getElementById('heatmap');
+  heatmapEl.innerHTML='';
+  weeks.forEach(w=>{
+    const col=document.createElement('div');col.className='hmap-col';
+    w.forEach(d=>{
+      const cell=document.createElement('div');cell.className='hmap-cell';
+      if(d){
+        const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        const entry=S.history&&S.history[key];
+        if(entry){
+          const pct=entry.total>0?entry.done/entry.total:0;
+          if(entry.allCleared)cell.classList.add('lp');
+          else if(pct>=0.6)cell.classList.add('l3');
+          else if(pct>=0.3)cell.classList.add('l2');
+          else if(pct>0)cell.classList.add('l1');
+        }
+        cell.title=(d===now?'Today':key)+(entry?` · ${entry.done}/${entry.total} quests · ${entry.xp} XP`:'');
+      } else {
+        cell.style.opacity='0';
+      }
+      col.appendChild(cell);
+    });
+    heatmapEl.appendChild(col);
+  });
+
+  // summary line
+  const activeDays=Object.keys(S.history||{}).length;
+  const clearedDays=Object.values(S.history||{}).filter(e=>e.allCleared).length;
+  document.getElementById('heatmapSub').textContent=`${activeDays} active days · ${clearedDays} full clears`;
+}
+
+function renderDistPatterns(){
+  const hist=S.history||{};
+  const today=getToday();
+  // last 7 days and previous 7 days
+  const thisWeek=[],lastWeek=[];
+  for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');thisWeek.push(hist[k]);}
+  for(let i=7;i<14;i++){const d=new Date();d.setDate(d.getDate()-i);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');lastWeek.push(hist[k]);}
+
+  const thisTotal=thisWeek.reduce((s,e)=>s+(e?e.distractionCount:0),0);
+  const lastTotal=lastWeek.reduce((s,e)=>s+(e?e.distractionCount:0),0);
+  const diff=thisTotal-lastTotal;
+  const diffTxt=diff===0?'same as last week':diff>0?`+${diff} vs last week`:`${diff} vs last week`;
+  const diffCol=diff<=0?'var(--teal)':'var(--coral)';
+  document.getElementById('patternSub').textContent=`${thisTotal} this week`;
+
+  // aggregate source + reason from this week's history + today's live distractions
+  const byType={},byReason={};
+  thisWeek.forEach(e=>{if(!e)return;Object.entries(e.byType||{}).forEach(([k,v])=>byType[k]=(byType[k]||0)+v);Object.entries(e.byReason||{}).forEach(([k,v])=>byReason[k]=(byReason[k]||0)+v);});
+
+  const sortedTypes=Object.entries(byType).sort((a,b)=>b[1]-a[1]);
+  const sortedReasons=Object.entries(byReason).sort((a,b)=>b[1]-a[1]);
+  const maxT=sortedTypes[0]?sortedTypes[0][1]:1;
+  const maxR=sortedReasons[0]?sortedReasons[0][1]:1;
+
+  const TYPE_LABELS={'📱':'Phone','💻':'Laptop','🧠':'Overthinking','📺':'TV/Netflix'};
+  const REASON_LABELS={'😴':'Fatigue','😓':'Stuck','😐':'Boredom','🔁':'Habit'};
+
+  let html='';
+  if(sortedTypes.length===0&&sortedReasons.length===0){
+    html='<div style="font-size:12px;color:var(--muted);padding:6px 0;">No distractions logged this week. Keep it up!</div>';
+  } else {
+    html+=`<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Source</div>`;
+    sortedTypes.forEach(([k,v])=>{html+=`<div class="pattern-row"><span style="font-size:12px;min-width:80px;">${TYPE_LABELS[k]||k}</span><div class="pattern-bar-track"><div class="pattern-bar-fill" style="width:${Math.round(v/maxT*100)}%"></div></div><span style="font-size:12px;font-weight:700;color:var(--coral);min-width:20px;text-align:right;">${v}x</span></div>`;});
+    html+=`<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin:12px 0 8px;">Reason</div>`;
+    sortedReasons.forEach(([k,v])=>{html+=`<div class="pattern-row"><span style="font-size:12px;min-width:80px;">${REASON_LABELS[k]||k}</span><div class="pattern-bar-track"><div class="pattern-bar-fill" style="width:${Math.round(v/maxR*100)}%;background:var(--amber);"></div></div><span style="font-size:12px;font-weight:700;color:var(--amber-dark);min-width:20px;text-align:right;">${v}x</span></div>`;});
+    html+=`<div style="margin-top:12px;font-size:12px;font-weight:600;color:${diffCol};">${diffTxt}</div>`;
+  }
+  document.getElementById('distPatterns').innerHTML=html;
 }
 
 document.getElementById('newName').addEventListener('keydown',e=>{if(e.key==='Enter')addQuest();});
