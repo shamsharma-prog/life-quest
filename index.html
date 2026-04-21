@@ -530,10 +530,12 @@ auth.onAuthStateChanged((user) => {
 
         if (!appLaunched) {
           appLaunched = true;
+          rolloverDay(); // auto-reset if it's a new day
           document.getElementById('loadingScreen').style.display = 'none';
           document.getElementById('appRoot').classList.add('visible');
           applyDark();
           switchTab(S.activeTab || 'today');
+          save(); // persist rollover changes
         } else {
           applyDark();
           render(); // remote change from another device — re-render instantly
@@ -618,29 +620,69 @@ const BWT=[{id:'bw1',n:'Solve 10–15 DSA problems this week'},{id:'bw2',n:'Comp
 const RULES=['📵 No split attention — zero multitasking','📱 Phone in another room during deep work','📺 Netflix only after all work is done','🔁 When urge hits: breathe, walk, or write "why am I stuck?"','🎯 Track distractions — just the number, every day'];
 const AFFIRMS=['"I am a focused, disciplined engineer building a top 1% career."','"I do what I say. Every day. No excuses."','"I am building the version of me I will be proud of in 5 years."','"Discipline today. Freedom tomorrow."','"I am someone who shows up — especially when it\'s hard."'];
 
-function def(){return{completed:{},custom:{mind:[],career:[],health:[],wealth:[],discipline:[],growth:[]},activeRealm:'career',activeTab:'today',shields:0,freezes:0,frozen:{},streaks:{mind:0,career:0,health:0,wealth:0,discipline:0,growth:0},milestones:[],distractions:[],focusMins:0,focusSession:null,bossTasks:{},mits:['','',''],blockDone:{},history:{},wins:'',darkMode:false};}
+function def(){return{completed:{},custom:{mind:[],career:[],health:[],wealth:[],discipline:[],growth:[]},activeRealm:'career',activeTab:'today',shields:0,freezes:0,frozen:{},streaks:{mind:0,career:0,health:0,wealth:0,discipline:0,growth:0},milestones:[],distractions:[],focusMins:0,focusSession:null,bossTasks:{},mits:['','',''],blockDone:{},history:{},wins:'',darkMode:false,lastDate:''};}
 let S = def();
 
 function getToday(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 
-function snapshotToday(){
+// snapshot accepts an explicit dateKey so rollover can stamp yesterday's data
+function snapshotToday(dateKey){
   if(!S.history)S.history={};
-  const today=getToday();
+  const key=dateKey||getToday();
   const byType={},byReason={};
   (S.distractions||[]).forEach(d=>{
     const t=d.type.split(' ')[0];byType[t]=(byType[t]||0)+1;
     const r=d.reason.split(' ')[0];byReason[r]=(byReason[r]||0)+1;
   });
-  S.history[today]={
+  S.history[key]={
     xp:xpEarned(),
     done:RID.reduce((s,r)=>s+rDone(r),0),
     total:RID.reduce((s,r)=>s+rTotal(r),0),
     allCleared:allCleared(),
+    realmsDone:Object.fromEntries(RID.map(r=>[r,rCleared(r)])),
     focusMins:S.focusMins||0,
     distractionCount:distCount(),
     byType,byReason,
     wins:S.wins||''
   };
+}
+
+// runs on every open/foreground — detects new day and rolls over automatically
+function rolloverDay(){
+  const today=getToday();
+  if(!S.lastDate){S.lastDate=today;return;} // first ever open
+  if(S.lastDate===today)return;             // same day, nothing to do
+
+  const days=Math.round((new Date(today)-new Date(S.lastDate))/86400000);
+
+  // stamp yesterday's (or last active day's) completed data into history
+  snapshotToday(S.lastDate);
+
+  if(days===1){
+    // one day passed — check each realm and update streaks
+    const yEntry=S.history[S.lastDate]||{};
+    RID.forEach(r=>{
+      const cleared=yEntry.realmsDone&&yEntry.realmsDone[r];
+      const frozen=S.frozen&&S.frozen[r];
+      if(frozen){/* keep streak */}
+      else if(cleared)S.streaks[r]=(S.streaks[r]||0)+1;
+      else S.streaks[r]=0;
+    });
+    checkMS();
+  } else {
+    // missed multiple days — all streaks reset (no frozen protection)
+    RID.forEach(r=>{S.streaks[r]=0;});
+  }
+
+  // clear frozen (only protects one day), reset all daily fields
+  S.frozen={};
+  S.completed={};
+  S.distractions=[];
+  S.focusMins=0;
+  S.focusSession=null;
+  S.blockDone={};
+  S.wins='';
+  S.lastDate=today;
 }
 
 function applyDark(){
@@ -929,6 +971,15 @@ function renderDistPatterns(){
   }
   document.getElementById('distPatterns').innerHTML=html;
 }
+
+// re-check day rollover when app comes back into view (phone wake, tab switch)
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&currentUser){
+    const before=S.lastDate;
+    rolloverDay();
+    if(S.lastDate!==before){save();render();toast('New day — fresh start! 🌅','#1D9E75');}
+  }
+});
 
 document.getElementById('newName').addEventListener('keydown',e=>{if(e.key==='Enter')addQuest();});
 ['mit1','mit2','mit3'].forEach(id=>document.getElementById(id).addEventListener('change',saveMIT));
