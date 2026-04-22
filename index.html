@@ -650,31 +650,28 @@ function snapshotToday(dateKey){
 // runs on every open/foreground — detects new day and rolls over automatically
 function rolloverDay(){
   const today=getToday();
-  if(!S.lastDate){S.lastDate=today;return;} // first ever open
-  if(S.lastDate===today)return;             // same day, nothing to do
+  if(S.lastDate===today)return; // same day, nothing to do
 
-  const days=Math.round((new Date(today)-new Date(S.lastDate))/86400000);
-
-  // stamp yesterday's (or last active day's) completed data into history
-  snapshotToday(S.lastDate);
-
-  if(days===1){
-    // one day passed — check each realm and update streaks
-    const yEntry=S.history[S.lastDate]||{};
-    RID.forEach(r=>{
-      const cleared=yEntry.realmsDone&&yEntry.realmsDone[r];
-      const frozen=S.frozen&&S.frozen[r];
-      if(frozen){/* keep streak */}
-      else if(cleared)S.streaks[r]=(S.streaks[r]||0)+1;
-      else S.streaks[r]=0;
-    });
-    checkMS();
-  } else {
-    // missed multiple days — all streaks reset (no frozen protection)
-    RID.forEach(r=>{S.streaks[r]=0;});
+  // if we have a known past date, snapshot it and update streaks
+  if(S.lastDate){
+    const days=Math.round((new Date(today)-new Date(S.lastDate))/86400000);
+    snapshotToday(S.lastDate); // stamp completed data under yesterday's date
+    if(days===1){
+      const yEntry=S.history[S.lastDate]||{};
+      RID.forEach(r=>{
+        const cleared=yEntry.realmsDone&&yEntry.realmsDone[r];
+        const frozen=S.frozen&&S.frozen[r];
+        if(frozen){/* keep streak */}
+        else if(cleared)S.streaks[r]=(S.streaks[r]||0)+1;
+        else S.streaks[r]=0;
+      });
+      checkMS();
+    } else {
+      // missed multiple days — reset all streaks
+      RID.forEach(r=>{S.streaks[r]=0;});
+    }
   }
-
-  // clear frozen (only protects one day), reset all daily fields
+  // whether lastDate was empty or a past date — always wipe the daily slate
   S.frozen={};
   S.completed={};
   S.distractions=[];
